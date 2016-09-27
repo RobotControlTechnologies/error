@@ -11,6 +11,7 @@ set(SOURCES
 
 set(PUBLIC_HEADERS
   src/error.h
+  src/base_error.h
 )
 
 add_library(${PROJECT} STATIC ${SOURCES})
@@ -18,25 +19,6 @@ add_library(${PROJECT} STATIC ${SOURCES})
 #################################################################################
 # Libraries
 #################################################################################
-
-###############################
-## Module_headers
-###############################
-if(NOT MODULE_HEADERS_PATH)
-  set(MODULE_HEADERS_PATH "../module_headers")
-endif()
-
-if(NOT MODULE_HEADERS_PATH STREQUAL MODULE_HEADERS_PATH_INTERNAL)
-  unset(MODULE_HEADERS_DIR)
-endif()
-set(MODULE_HEADERS_PATH_INTERNAL ${MODULE_HEADERS_PATH} CACHE INTERNAL "" FORCE)
-
-find_path(MODULE_HEADERS_DIR NAMES "current/module.h" PATHS ${MODULE_HEADERS_PATH} NO_DEFAULT_PATH)
-if(MODULE_HEADERS_DIR)
-  target_include_directories(${PROJECT} PUBLIC ${MODULE_HEADERS_DIR})
-else()
-  message(SEND_ERROR "Please set MODULE_HEADERS_PATH, current value: ${MODULE_HEADERS_PATH}")
-endif()
 
 #################################################################################
 # Properties

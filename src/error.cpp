@@ -1,107 +1,92 @@
 #include "error.h"
 
+#include <algorithm>
 #include <cstdio>
+#include <iterator>
+#include <sstream>
 
-void Error::init(std::string mask, va_list *args) {
-  char buffer[1024];
-  vsnprintf(buffer, 1024, mask.c_str(), *args);
-  message += buffer;
-}
+BaseError::BaseError(): m_isEmpty{true}, m_child(nullptr) {}
+BaseError::~BaseError() {}
 
-#define ERROR_CONSTRUCTOR_CODE \
-  va_list args;                \
-  va_start(args, mask);        \
-  init(mask, &args);           \
-  va_end(args);
-
-Error::Error()
-    : is_empty(true),
-      color(ConsoleColor(ConsoleColor::red)),
-      message(""),
-      child(nullptr)
-{}
-
-Error::Error(std::string mask, ...)
-    : is_empty(false),
-      color(ConsoleColor::red),
-      message(""),
-      child(nullptr)
-{
-  ERROR_CONSTRUCTOR_CODE
-}
-
-Error::Error(ConsoleColor color, std::string mask, ...)
-    : is_empty(false),
-      color(color),
-      message(""),
-      child(nullptr)
-{
-  ERROR_CONSTRUCTOR_CODE
-}
-
-Error::Error(Error *child, std::string mask, ...)
-    : is_empty(false),
-      color(ConsoleColor::red),
-      child(child)
-{
-  ERROR_CONSTRUCTOR_CODE
-}
-
-Error::Error(Error *child, ConsoleColor color, std::string mask, ...)
-    : is_empty(false), color(color), child(child)
-{
-  ERROR_CONSTRUCTOR_CODE
-}
-
-Error::Error(ConsoleColor color, std::string mask, va_list _list)
-    : is_empty(false), color(color), message(""), child(nullptr)
-{
-  init(mask, &_list);
-}
-
-bool Error::isEmpty() { return !(neighbours.size() || child || !is_empty); }
-
-void Error::checkSelf() {
-  checkSelfThrow();
-  delete this;
-}
-
-void Error::checkSelfThrow() {
-  if (!isEmpty()) {
-    throw this;
-  }
-}
-
-void Error::append(Error *neighbour) { neighbours.push_back(neighbour); }
-
-std::string Error::emit(unsigned int level) {
-  std::string result = "";
-  if (!is_empty) {
-    for (unsigned int i = 0; i < level; ++i) {
-      result += "  ";
-    }
-    result += message;
-    result += "\n";
-  }
-
-  if (child) {
-    result += child->emit(level + 1);
-  }
-  if (!neighbours.empty()) {
-    for (Error* e : neighbours) {
-      result += e->emit(level);
-    }
+static std::string generateMessage(std::string mask, va_list args) {
+  std::string result;
+  int sizeNeed = vsnprintf(nullptr, 0, mask.c_str(), args);
+  if (sizeNeed >= 0) {
+    result.resize(sizeNeed);
+    vsnprintf(&result[0], sizeNeed + 1, mask.c_str(), args);
+  } else {
+    result.clear();
   }
   return result;
 }
 
-Error::~Error() {
-  if (child) {
-    delete child;
+BaseError::BaseError(BaseError* child, std::string mask, va_list args):
+    m_isEmpty{false}, m_child(child),
+    m_message(generateMessage(mask, args)) {}
+
+BaseError::BaseError(std::string mask, va_list args):
+    BaseError(nullptr, mask, args) {}
+
+bool BaseError::isEmpty() const {
+  return !(m_neighbours.size() || m_child || !m_isEmpty);
+}
+
+const std::string& BaseError::getMessage() const {
+  return m_message;
+}
+
+void BaseError::checkSelf() {
+  checkSelfThrow();
+  delete this;
+}
+
+void BaseError::checkSelfThrow() {
+  if (!isEmpty()) {
+    throwThis();
   }
-  if (neighbours.size()) {
-    for (Error* e : neighbours) {
-      delete e;
+}
+
+void BaseError::append(BaseError *neighbour) {
+  m_neighbours.emplace_back(neighbour);
+}
+
+void BaseError::forEach(Action action, unsigned level) const {
+  if (!m_isEmpty) {
+    action(this, level);
+  }
+
+  if (m_child) {
+    m_child->forEach(action, level + 1);
+  }
+
+  for (const auto& e : m_neighbours) {
+    if (e) {
+      e->forEach(action, level);
     }
   }
+}
+
+std::string BaseError::emit(unsigned level) const {
+  std::stringstream ss;
+  forEach([&ss] (const BaseError* feError, unsigned feLevel) {
+    std::fill_n(std::ostream_iterator<char>(ss), feLevel * 2, ' ');
+    ss << feError->m_message << std::endl;
+  }, level);
+  return ss.str();
+}
+
+Error::Error(BaseError* child, std::string mask, ...):
+    BaseError(child, mask, (va_start(m_va, mask), m_va))
+{
+  va_end(m_va);
+}
+
+Error::Error(std::string mask, ...):
+    BaseError(mask, (va_start(m_va, mask), m_va))
+{
+  va_end(m_va);
+}
+
+void Error::throwThis() {
+  throw this;
 }
