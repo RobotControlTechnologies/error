@@ -17,10 +17,6 @@ set(PUBLIC_HEADERS
 add_library(${PROJECT} STATIC ${SOURCES})
 
 #################################################################################
-# Libraries
-#################################################################################
-
-#################################################################################
 # Properties
 #################################################################################
 
@@ -30,14 +26,17 @@ target_compile_options(${PROJECT} PRIVATE
   -Wall -Werror
   -pedantic
   -fno-strict-aliasing
-  -fmax-errors=2
 )
 
 if(UNIX AND (X86_64 OR X86))
   target_compile_options(${PROJECT} PUBLIC -m32)
 endif()
 
-set_target_properties(${PROJECT} PROPERTIES DEBUG_POSTFIX "_d")
+set_target_properties(${PROJECT} PROPERTIES DEBUG_POSTFIX "_debug")
+
+#################################################################################
+# Libraries
+#################################################################################
 
 #################################################################################
 # Install
