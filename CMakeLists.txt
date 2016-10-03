@@ -28,9 +28,9 @@ target_compile_options(${PROJECT} PRIVATE
   -fno-strict-aliasing
 )
 
-if(UNIX AND (X86_64 OR X86))
+#if(UNIX AND (X86_64 OR X86)) # need detect X86
   target_compile_options(${PROJECT} PUBLIC -m32)
-endif()
+#endif()
 
 set_target_properties(${PROJECT} PROPERTIES DEBUG_POSTFIX "_debug")
 
