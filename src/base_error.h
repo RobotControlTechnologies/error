@@ -20,7 +20,6 @@ public:
   virtual ~BaseError();
 
   BaseError(BaseError* child, std::string mask, va_list args);
-
   BaseError(std::string mask, va_list args);
 
   bool isEmpty() const;

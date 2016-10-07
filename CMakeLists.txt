@@ -30,6 +30,7 @@ target_compile_options(${PROJECT} PRIVATE
 
 #if(UNIX AND (X86_64 OR X86)) # need detect X86
   target_compile_options(${PROJECT} PUBLIC -m32)
+  set_target_properties(${PROJECT} PROPERTIES LINK_FLAGS -m32)
 #endif()
 
 set_target_properties(${PROJECT} PROPERTIES DEBUG_POSTFIX "_debug")
